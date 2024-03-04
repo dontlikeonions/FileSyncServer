@@ -4,7 +4,7 @@ import json
 import os.path
 import configparser
 
-from logger import LOGGER
+from logs.logger import logger
 
 config = configparser.ConfigParser()
 config.read('settings.ini')
@@ -30,7 +30,7 @@ def load_data() -> None:
         try:
             hash_table = json.load(file)
         except json.decoder.JSONDecodeError as e:
-            LOGGER.error(f"Error parsing file {e.doc} at {e.pos} position: {e.msg}")
+            logger.error(f"Error parsing file {e.doc} at {e.pos} position: {e.msg}")
             hash_table = {}
 
 
@@ -41,7 +41,7 @@ def save_data() -> None:
 
 @routes.get('/get_data')
 async def get_data(request) -> web.Response:
-    LOGGER.debug(f"Request received: {request}")
+    logger.debug(f"Request received: {request}")
     return web.json_response(hash_table)
 
 
@@ -65,7 +65,6 @@ async def file_hash_update(request) -> web.Response:
 
     hash_table[file_path] = file_hash
 
-    # LOGGER.debug(f"Request received: {request} with data: {data}")
     return web.Response(text="File update successfully")
 
 
@@ -77,7 +76,7 @@ async def file_name_update(request) -> web.Response:
     old_path = data.get("old_path")
     old_rel_path = data.get('old_relative_path')
 
-    # removing from list of files on server
+    # removing from the list of files on server
     file_hash = hash_table[old_path]
     hash_table[new_path] = file_hash
     del hash_table[old_path]

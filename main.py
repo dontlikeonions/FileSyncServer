@@ -1,3 +1,5 @@
+import ssl
+
 from aiohttp import web
 import aiofiles
 import json
@@ -11,7 +13,7 @@ config.read('settings.ini')
 
 ip = config.get('Server', 'ip')
 port = config.getint('Server', 'port')
-request_max_size = config.getint('Server', 'request_max_size') ** 3
+request_max_size = config.getint('Server', 'request_max_size') ** 5
 hash_table_path = config.get('Paths', 'hash_table_path')
 upload_directory = config.get('Paths', 'upload_directory')
 
@@ -76,10 +78,11 @@ async def file_name_update(request) -> web.Response:
     old_path = data.get("old_path")
     old_rel_path = data.get('old_relative_path')
 
-    # removing from the list of files on server
-    file_hash = hash_table[old_path]
-    hash_table[new_path] = file_hash
-    del hash_table[old_path]
+    if os.path.isfile(old_path):
+        # removing from the list of files on server
+        file_hash = hash_table[old_path]
+        hash_table[new_path] = file_hash
+        del hash_table[old_path]
 
     old_rel_path = get_upload_path(old_rel_path)
     new_rel_path = get_upload_path(new_rel_path)
@@ -114,10 +117,16 @@ def get_upload_path(relative_path: str) -> str:
 def main():
     load_data()
 
+    ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_context.load_cert_chain(
+        r'C:\Users\dmkuz\PycharmProjects\FileSyncApp\FileSync_Server\ssl\syncapp_server.crt',
+        r'C:\Users\dmkuz\PycharmProjects\FileSyncApp\FileSync_Server\ssl\syncapp_server.key'
+    )
+
     try:
         app = web.Application(client_max_size=request_max_size)
         app.add_routes(routes)
-        web.run_app(app, host=ip, port=port)
+        web.run_app(app, host=ip, port=port, ssl_context=ssl_context)
     finally:
         save_data()
 

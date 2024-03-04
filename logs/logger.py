@@ -1,6 +1,6 @@
 import logging
 
-logging.basicConfig(filename='log.log',
+logging.basicConfig(filename='logs/log.log',
                     filemode='a',
                     level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)-8s [%(filename)s:%(lineno)d in %(funcName)s()] %(message)s',

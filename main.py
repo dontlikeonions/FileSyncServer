@@ -26,9 +26,10 @@ def load_data() -> None:
     global hash_table
     if not os.path.exists(hash_table_path):
         with open(hash_table_path, 'x'):
-            pass
+            hash_table = {}
+            return
 
-    with open(hash_table_path, 'r+') as file:
+    with open(hash_table_path, 'r', encoding='utf-8') as file:
         try:
             hash_table = json.load(file)
         except json.decoder.JSONDecodeError as e:
@@ -37,8 +38,8 @@ def load_data() -> None:
 
 
 def save_data() -> None:
-    with open(hash_table_path, 'w+') as file:
-        json.dump(hash_table, file)
+    with open(hash_table_path, 'w+', encoding='utf-8') as file:
+        json.dump(hash_table, file, ensure_ascii=False)
 
 
 @routes.get('/get_data')
@@ -55,15 +56,15 @@ async def file_hash_update(request) -> web.Response:
 
     payload = json.loads(data['payload'])
     file_path = payload.get('file_path')
+    print(f"File hash update, path: {file_path}")
     relative_path = payload.get('relative_path')
     file_hash = payload.get('file_hash')
 
     upload_path = get_upload_path(relative_path)
+    print(f"\tUpload path: {upload_path}")
 
     async with aiofiles.open(upload_path, 'wb') as f:
         await f.write(file_content)
-        # while chunk := await file.read(1024**2):
-        #     await f.write(chunk)
 
     hash_table[file_path] = file_hash
 
@@ -105,6 +106,9 @@ async def delete_file(request) -> web.Response:
 
 
 def get_upload_path(relative_path: str) -> str:
+    """
+    Returns the absolute path for a given relative path
+    """
     upload_path = os.path.join(upload_directory, relative_path)
 
     # creating directories to create the file

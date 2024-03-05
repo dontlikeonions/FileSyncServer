@@ -1,7 +1,7 @@
 /.venv/
 /settings.ini
 /.idea/
-/hash_table.json
+/data/*
 /logs/log.log
-/ssl/
 /uploads/
+/cert/

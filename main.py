@@ -48,6 +48,13 @@ def save_data() -> None:
 
 
 def is_new_ip(current_ip: str) -> bool:
+    """
+    Checks if the current IP is different from the last recorder one
+
+    Returns:
+        bool: True if the IP is the current IP is different or if there was an error parsing the last IP address;
+            False otherwise
+    """
     if not os.path.exists(last_ip_path):
         return True
 
@@ -68,7 +75,18 @@ def update_ip(current_ip: str) -> None:
         json.dump(current_ip, file, ensure_ascii=False)
 
 
-def get_ip():
+def get_ip() -> str:
+    """
+    Retrieve the local IP address of the current machine.
+
+    This function tries to determine the local IP address of the machine by creating a
+    temporary socket connection. If successful, it retrieves the IP address using the
+    `getsockname()` method. If an exception occurs during the process, it defaults to
+    returning the loopback address '127.0.0.1'.
+
+    Returns:
+        str: The local IP address of the current machine.
+    """
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(0)
     try:
@@ -144,7 +162,8 @@ async def delete_file(request) -> web.Response:
 
 def get_upload_path(relative_path: str) -> str:
     """
-    Returns the absolute path for a given relative path
+    Returns:
+         str: The absolute path for a given relative path
     """
     upload_path = os.path.join(upload_directory, relative_path)
 
@@ -159,14 +178,18 @@ def main():
     current_ip = get_ip()
 
     if is_new_ip(current_ip):
-        print(f"New IP: {current_ip}")
+        logger.debug(f"Server running on new ip: '{current_ip}'")
         private_key, certificate = generate_self_signed_certificate(current_ip)
         save_key(private_key)
         save_certificate(certificate)
 
+        # if server and client are running on localhost
         install_ssl_certificate(cert_path)
+
+        # save new ip as the last used
         update_ip(current_ip)
 
+    # load saved data
     load_data()
 
     ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)

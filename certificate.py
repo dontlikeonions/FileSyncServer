@@ -1,5 +1,5 @@
-import win32crypt
-import win32cryptcon
+import sys
+from typing import Tuple
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -10,6 +10,8 @@ import datetime
 from ipaddress import ip_address
 
 import configparser
+import platform
+
 config = configparser.ConfigParser()
 config.read('settings.ini')
 
@@ -17,7 +19,24 @@ key_path = config.get('Paths', 'key_path')
 cert_path = config.get('Paths', 'cert_path')
 
 
-def generate_self_signed_certificate(ip_address_str: str):
+def generate_self_signed_certificate(ip_address_str: str) -> Tuple[rsa.RSAPrivateKey, x509.Certificate]:
+    """
+    Generate a self-signed SSL certificate for the given IP address
+
+    Args:
+        ip_address_str (str): The IP address for which the certificate is being generated
+
+    Returns:
+        tuple: A tuple containing the private key and the generated SSL certificate
+
+    The function generates a self-signed SSL certificate using the RSA algorithm with a
+    2048-bit key size. The certificate is valid for one year starting from the current
+    UTC time. The IP address provided is included as the common name and subject alternative
+    name in the certificate.
+
+    Example:
+        private_key, certificate = generate_self_signed_certificate('192.168.1.1')
+    """
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
@@ -73,7 +92,66 @@ def save_certificate(certificate) -> None:
         )
 
 
-def install_ssl_certificate(certificate_path) -> None:
+def install_ssl_certificate(certificate_path: str) -> None:
+    os = platform.system()
+    match os:
+        case 'Windows':
+            install_ssl_certificate_win(certificate_path)
+        case 'Linux':
+            install_ssl_certificate_linux(certificate_path)
+        case default:
+            print("Unknown operating system")
+            sys.exit()
+
+
+def install_ssl_certificate_linux(certificate_path: str) -> None:
+    """
+    Install an SSL certificate to the root store on Linux.
+
+    Args:
+        certificate_path (str): Path to the SSL certificate file.
+
+    This function reads the contents of the certificate file and installs it to the
+    root certificate store on a Linux system.
+
+    Note:
+        This function assumes the use of the `update-ca-certificates` command, which is
+        commonly available on Debian-based distributions. This may need adjustments
+        for other Linux distributions.
+
+    Example:
+        install_ssl_certificate_linux('/path/to/certificate.crt')
+    """
+    import shutil
+    import subprocess
+
+    # copy the certificate to the appropriate directory
+    cert_fir = '/usr/local/share/ca-certificates/'
+    shutil.copy(certificate_path, cert_fir)
+
+    # update the CA certificates store
+    subprocess.run(['update-ca-certificates'], check=True)
+
+
+def install_ssl_certificate_win(certificate_path) -> None:
+    """
+    Install an SSL certificate to the root store on Windows.
+
+    Args:
+        certificate_path (str): Path to the SSL certificate file.
+
+    This function reads the contents of the certificate file, decodes it, and installs
+    it to the root certificate store on a Windows system.
+
+    Note:
+        This function is specific to Windows and relies on the `win32crypt` library.
+
+    Example:
+        install_ssl_certificate('path/to/certificate.crt')
+    """
+    import win32crypt
+    import win32cryptcon
+
     with open(certificate_path, 'r') as cert_file:
         cert_str = cert_file.read()
 

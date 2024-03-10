@@ -1,11 +1,12 @@
-import socket
-
-import ssl
-
 from aiohttp import web
+from pathlib import Path
 import aiofiles
+import platform
+import socket
+import ssl
+import re
 import json
-import os.path
+import os
 import configparser
 
 from logs.logger import logger
@@ -160,7 +161,7 @@ async def delete_file(request) -> web.Response:
     return web.json_response("Deleted!")
 
 
-def get_upload_path(relative_path: str) -> str:
+def get_upload_path(relative_path: str | Path) -> str:
     """
     Returns:
          str: The absolute path for a given relative path
@@ -169,9 +170,37 @@ def get_upload_path(relative_path: str) -> str:
 
     # creating directories to create the file
     path_with_dirs = os.path.dirname(upload_path)
-    os.makedirs(path_with_dirs, exist_ok=True)
+
+    os_translated_path = translate_path(path_with_dirs)
+    os.makedirs(os_translated_path, exist_ok=True)
 
     return upload_path
+
+
+def translate_path(path: str) -> str:
+    """
+    Translate the given path to match the format of the local operating system
+
+    Returns:
+        str: The translated path adjusted to the local operating system
+
+    Raises:
+        OSError: If the current operating system is not supported (only Windows and Linux are supported)
+
+    Example:
+        >>> translate_path("/path/to/the/file.txt")
+        '\\path\\to\\file.txt' # on Windows
+        '/path/to/file.txt' # on Linux
+    """
+    system = platform.system()
+    if system == "Windows":
+        path = path.replace("/", "\\")
+        path = re.sub(r'\\+', r'\\', path)
+        return path
+    elif system == "Linux":
+        return path.replace('\\', '/')
+    else:
+        raise OSError("Unsupported operating system. Only Windows and Linux are supported")
 
 
 def main():

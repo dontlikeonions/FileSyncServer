@@ -1,4 +1,5 @@
 from typing import Tuple
+from pathlib import Path
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -17,7 +18,7 @@ key_path = config.get('Paths', 'key_path')
 cert_path = config.get('Paths', 'cert_path')
 
 
-def generate_self_signed_certificate(ip_address_str: str) -> Tuple[rsa.RSAPrivateKey, x509.Certificate]:
+def generate_self_signed_certificate(ip_address_str: str | Path) -> Tuple[rsa.RSAPrivateKey, x509.Certificate]:
     """
     Generate a self-signed SSL certificate for the given IP address
 

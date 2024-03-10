@@ -9,7 +9,7 @@ import os.path
 import configparser
 
 from logs.logger import logger
-from certificate import generate_self_signed_certificate, save_certificate, save_key, install_ssl_certificate
+from ssl_certificate_generator import generate_self_signed_certificate, save_certificate, save_key
 
 config = configparser.ConfigParser()
 config.read('settings.ini')
@@ -182,9 +182,6 @@ def main():
         private_key, certificate = generate_self_signed_certificate(current_ip)
         save_key(private_key)
         save_certificate(certificate)
-
-        # if server and client are running on localhost
-        install_ssl_certificate(cert_path)
 
         # save new ip as the last used
         update_ip(current_ip)
